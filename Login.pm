@@ -1,5 +1,5 @@
 
-# $Id: Login.pm,v 1.4 2001/04/05 23:32:42 nwiger Exp nwiger $
+# $Id: Login.pm,v 1.5 2001/06/01 21:37:01 nwiger Exp $
 ####################################################################
 #
 # Copyright (c) 2000-2001 Nathan Wiger (nate@nateware.com)
@@ -39,7 +39,7 @@ use Exporter;
 @EXPORT_OK = qw(login);
 
 # Straight from CPAN
-$VERSION = do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf "%d."."%02d"x$#r,@r }; 
+$VERSION = do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf "%d."."%02d"x$#r,@r }; 
 
 # Errors
 use Carp;
@@ -54,6 +54,7 @@ my %CONF = (
    # What todo on failure
    failmesg       => "Login incorrect\n",
    failsleep      => 3,
+   failexit       => 1,
 
    # Misc default strings
    banner         => "Please Login\n",
@@ -132,7 +133,7 @@ sub _self_or_default {
 #------------------------------------------------
 
 #######
-# Usage: $ul->login;
+# Usage: $ul->login or login();
 #
 # This is designed to simulate a command-line long on UNIX machines.
 # In an array context it returns the std getpwnam array or undef,
@@ -166,6 +167,7 @@ sub login {
    }
 
    # While loop
+   my $success = 0;
    for(my $i=0; $i < $conf->{attempts}; $i++) {
 
       print $banner;
@@ -196,13 +198,19 @@ sub login {
       my($salt) = substr $pwstruct[1], 0, 2;
 
       # We're cool, let's go
-      last if (crypt($passwdtry, $salt) eq $pwstruct[1]);
+      if (crypt($passwdtry, $salt) eq $pwstruct[1]) {
+         $success++;
+         last;
+      }
 
       # Fake a UNIX login prompt wait
       sleep $conf->{failsleep};
       print $conf->{failmesg};
    } 
-
+   unless ($success) {
+      exit 1 if $conf->{failexit};
+      return;
+   }
    
    # Do a few basic things
    if ( $conf->{setenv} ) {
@@ -217,7 +225,7 @@ sub login {
    # Fork a shell if, for some strange reason, we are asked to.
    # We use the little-known indirect object form of exec()
    # to set $0 to -sh so we get a login shell.
-   if ( $conf->{ExecShell} ) {
+   if ( $conf->{execshell} ) {
       (my $shell = $pwstruct[8]) =~ s!^.*/!!;	# basename
       exec { "$pwstruct[8]" } "-$shell";
    }
@@ -255,21 +263,21 @@ Unix::Login - Customizable Unix login prompt and validation
 =head1 SYNOPSIS
 
    #
-   # You can use the object-oriented syntax...
+   # You can use the function-oriented syntax
+   #
+   use Unix::Login qw(login);
+  
+   # This will return the same thing as getpwnam() on success
+   my(@pw) = login(login => "Username: ", cdhome => 1);
+
+
+   #
+   # Or, use the more flexible object-oriented syntax
    #
    use Unix::Login;
 
    my $ul = Unix::Login->new(banner => "-- Welcome to Newix --\n");
-   my $username = $ul->login || exit 1;
-
-
-   #
-   # Or, use the shorter function-oriented syntax
-   #
-   use Unix::Login qw(login);
-   
-   my(@pwent) = login(login => "Username: ", cdhome => 1)
-	|| die "Sorry, you don't know your own password!\n";
+   my $username = $ul->login;   # will die if login fails
 
 
 =head1 DESCRIPTION
@@ -290,6 +298,7 @@ and their default values are:
    attempts      Max login attempts [3]
    failmesg      Print this on failure ["Login incorrect\n"]
    failsleep     And sleep for this many seconds [3]
+   failexit      If can't login after (3) attempts, exit fatally [1]
 
    banner        Banner printed once up top ["Please Login\n"]
    bannerfile    If set, printed after banner (i.e. /etc/issue) []
@@ -359,7 +368,7 @@ advantage), use this form.
 
 =head1 VERSION
 
-$Id: Login.pm,v 1.4 2001/04/05 23:32:42 nwiger Exp nwiger $
+$Id: Login.pm,v 1.5 2001/06/01 21:37:01 nwiger Exp $
 
 =head1 SEE ALSO
 
