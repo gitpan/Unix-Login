@@ -1,5 +1,5 @@
 
-# $Id: Login.pm,v 1.5 2001/06/01 21:37:01 nwiger Exp $
+# $Id: Login.pm,v 1.6 2002/02/12 22:56:38 nwiger Exp $
 ####################################################################
 #
 # Copyright (c) 2000-2001 Nathan Wiger (nate@nateware.com)
@@ -39,7 +39,7 @@ use Exporter;
 @EXPORT_OK = qw(login);
 
 # Straight from CPAN
-$VERSION = do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf "%d."."%02d"x$#r,@r }; 
+$VERSION = do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf "%d."."%02d"x$#r,@r }; 
 
 # Errors
 use Carp;
@@ -175,12 +175,12 @@ sub login {
       do {
          print $conf->{login};
          $logintry = <STDIN>;
-         return undef unless $logintry;   # catch ^D
+         return unless $logintry;   # catch ^D
          chomp $logintry;
       } while (! $logintry);
 
       # Like UNIX login, exit if no username
-      return undef unless $logintry;
+      return unless $logintry;
    
       # Look it up by name - explicitly say "CORE::"
       # since we may be using User::pwent...
@@ -368,7 +368,7 @@ advantage), use this form.
 
 =head1 VERSION
 
-$Id: Login.pm,v 1.5 2001/06/01 21:37:01 nwiger Exp $
+$Id: Login.pm,v 1.6 2002/02/12 22:56:38 nwiger Exp $
 
 =head1 SEE ALSO
 
